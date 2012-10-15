@@ -182,6 +182,10 @@ The source tree is based on autotools to configure the building, and
 does also have the necessary bits in place to do functional unit tests
 using the varnishtest tool.
 
+Install the GeoIP library headers::
+
+ apt-get install libgeoip-dev
+
 To check out the current development source::
 
  git clone git://github.com/lampeh/libvmod-geoip.git
