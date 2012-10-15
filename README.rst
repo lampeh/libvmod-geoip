@@ -184,7 +184,7 @@ using the varnishtest tool.
 
 To check out the current development source::
 
- git clone git://git.openchaos.org/libvmod-geoip.git
+ git clone git://github.com/lampeh/libvmod-geoip.git
 
 Usage::
 
