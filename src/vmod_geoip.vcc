@@ -1,6 +1,8 @@
 Module geoip
 Init init_function
 
+Function STRING geoip_record(PRIV_VCL, STRING)
+
 ## look up two-letter country codes
 Function STRING country_code(PRIV_VCL, STRING)
 #Function STRING ip_country_code(PRIV_VCL, IP)
