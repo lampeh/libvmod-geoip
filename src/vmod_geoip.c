@@ -10,6 +10,7 @@
 
 #include <stdlib.h>
 #include <GeoIP.h>
+#include <GeoIPCity.h>
 
 #include "vrt.h"
 #include "vrt_obj.h"
@@ -41,6 +42,48 @@ init_priv(struct vmod_priv *pp) {
 	}
 }
 
+const char *
+vmod_geoip_record(struct sess *sp, struct vmod_priv *pp, const char *ip)
+{
+	if (!pp->priv) {
+		init_priv(pp);
+	}
+
+	if (ip) {
+		GeoIPRecord *gir = GeoIP_record_by_addr((GeoIP *)pp->priv, ip);
+
+		if (gir != NULL) {
+
+			unsigned int retsize = 1 +
+				strlen("continent_code=") + strlen(gir->continent_code) + 3 +
+				strlen("country_code=") + strlen(gir->country_code) + 3 +
+				strlen("country_name=") + strlen(gir->country_name) + 3 +
+				strlen("region=") + strlen(gir->region) + 3 +
+				strlen("city=") + strlen(gir->city) + 3 +
+				strlen("postal_code=") + strlen(gir->postal_code) + 3;
+
+			char *ret = WS_Alloc(sp->wrk->ws, retsize);
+
+			if (ret != NULL) {
+				snprintf(ret, retsize, "continent_code=\"%s\" country_code=\"%s\" country_name=\"%s\" region=\"%s\" "
+					"city=\"%s\" postcal_code=\"%s\"",
+					gir->continent_code,
+					gir->country_code,
+					gir->country_name,
+					gir->region,
+					gir->city,
+					gir->postal_code);
+			} else {
+				char *ret = WS_Dup(sp->wrk->ws, GI_UNKNOWN_STRING);
+			}
+
+            GeoIPRecord_delete(gir);
+			return(ret);
+		}
+
+		return(WS_Dup(sp->wrk, GI_UNKNOWN_STRING));
+	}
+}
 
 const char *
 vmod_country_code(struct sess *sp, struct vmod_priv *pp, const char *ip)
