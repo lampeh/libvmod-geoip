@@ -10,7 +10,7 @@
 
 #include <stdlib.h>
 #include <GeoIP.h>
-
+#include <GeoIPCity.h>
 #include "vrt.h"
 #include "vrt_obj.h"
 #include "bin/varnishd/cache.h"
@@ -30,11 +30,13 @@ init_function(struct vmod_priv *pp, const struct VCL_conf *conf)
 }
 
 static void
-init_priv(struct vmod_priv *pp) {
+init_priv(struct vmod_priv *pp, int type, int flags) {
+	//GeoIPCity.dat
+	//GeoIP.dat
 	// The README says:
 	// If GEOIP_MMAP_CACHE doesn't work on a 64bit machine, try adding
 	// the flag "MAP_32BIT" to the mmap call. MMAP is not avail for WIN32.
-	pp->priv = GeoIP_new(GEOIP_MMAP_CACHE);
+   	pp->priv = GeoIP_open_type(type, flags);
 	if (pp->priv != NULL) {
 		pp->free = (vmod_priv_free_f *)GeoIP_delete;
 		GeoIP_set_charset((GeoIP *)pp->priv, GEOIP_CHARSET_UTF8);
@@ -42,13 +44,16 @@ init_priv(struct vmod_priv *pp) {
 }
 
 
+
 const char *
 vmod_country_code(struct sess *sp, struct vmod_priv *pp, const char *ip)
 {
 	const char* country = NULL;
 
+	//GeoIP.dat is the default free database from MaxMind. It only maps country names to IP Addresses
+	//http://dev.maxmind.com/geoip/legacy/geolite/
 	if (!pp->priv) {
-		init_priv(pp);
+		init_priv(pp,1,GEOIP_MMAP_CACHE);
 	}
 
 	if (ip) {
@@ -74,8 +79,10 @@ vmod_country_name(struct sess *sp, struct vmod_priv *pp, const char *ip)
 {
 	const char* country = NULL;
 
+	//GeoIP.dat is the default free database from MaxMind. It only maps country names to IP Addresses
+	//http://dev.maxmind.com/geoip/legacy/geolite/
 	if (!pp->priv) {
-		init_priv(pp);
+		init_priv(pp,1,GEOIP_MMAP_CACHE);
 	}
 
 	if (ip) {
@@ -95,6 +102,40 @@ vmod_ip_country_name(struct sess *sp, struct vmod_priv *pp, struct sockaddr_stor
 	return vmod_country_name(sp, pp, VRT_IP_string(sp, ip));
 }
 
+const char *
+vmod_city_region_name(struct sess *sp, struct vmod_priv * pp, const char *ip)
+{
+	GeoIPRecord *gir;
+	const char* region = NULL;
+
+	//The GeoIPCity.dat file is a subscription file from MaxMind
+	//The free version, GeoCityLite.dat, can be downloaded from  http://dev.maxmind.com/geoip/legacy/geolite/ 
+	if (!pp->priv) {
+		init_priv(pp,2,GEOIP_MMAP_CACHE);
+	}
+
+	if (ip) {		
+		if (gir = GeoIP_record_by_addr((GeoIP *)pp->priv, ip)) {
+			region = gir->region;
+			GeoIPRecord_delete(gir);
+		}
+	}
+
+	return(WS_Dup(sp->wrk->ws, (region ? region : GI_UNKNOWN_STRING)));
+}
+
+const char *
+vmod_client_city_region_name(struct sess *sp, struct vmod_priv *pp) 
+{
+	return vmod_city_region_name(sp, pp, VRT_IP_string(sp, VRT_r_client_ip(sp)));
+}
+
+
+const char *
+vmod_ip_city_region_name(struct sess * sp, struct vmod_priv *pp, struct sockaddr_storage *ip)
+{
+	return vmod_city_region_name(sp, pp, VRT_IP_string(sp, ip));
+}
 
 const char *
 vmod_region_name(struct sess *sp, struct vmod_priv *pp, const char *ip)
@@ -102,8 +143,9 @@ vmod_region_name(struct sess *sp, struct vmod_priv *pp, const char *ip)
 	GeoIPRegion *gir;
 	const char* region = NULL;
 
-	if (!pp->priv) {
-		init_priv(pp);
+	//The GeoIPRegion.dat is a subscription service from MaxMind
+	if (!pp->priv) { 
+		init_priv(pp,3,GEOIP_MMAP_CACHE);
 	}
 
 	if (ip) {
