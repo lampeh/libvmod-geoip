@@ -125,6 +125,41 @@ Example
 
                 set req.http.X-Country-Name = geoip.country_name("127.0.0.1");
 
+client_city_region_name
+-----------------------
+
+Prototype
+        ::
+
+                client_city_region_name()
+Return value
+	STRING
+Description
+	Returns region name string from client IP address using the GeoIPCity.dat database
+Example
+        ::
+
+                set req.http.X-Region-Name = geoip.client_city_region_name();
+
+city_region_name
+------------------------------
+
+Prototype
+        ::
+
+                city_region_name(STRING S)
+Return value
+	STRING
+Description
+	Returns region name string from given IP address using the GeoIPCity.dat database
+Example
+        ::
+
+                set req.http.X-Region-Name = geoip.city_region_name("127.0.0.1");
+
+
+
+
 
 client_region_name (not exported yet)
 -------------------------------------
@@ -186,6 +221,17 @@ Install the GeoIP library headers::
 
  apt-get install libgeoip-dev
 
+If you want to be able to use the city_region_name() and 
+client_city_region_name() functions, you will need to download the 
+GeoIPCity.dat (subscription) or GeoLiteCity.dat (free) databases from
+MaxMind (http://geolite.maxmind.com/download/geoip/database/).
+If you go with GeoLiteCity.dat, be sure to create a simlink named
+GeoIPCity.dat that points to GeoLiteCity.dat in the directory where
+GeoIP.dat resides (typically in /usr/local/share/GeoIP/). If you do
+not install this database, the third unit test will fail but you
+will still be able to use the country code and country name
+functions without a problem.
+
 To check out the current development source::
 
  git clone git://github.com/lampeh/libvmod-geoip.git
@@ -222,8 +268,8 @@ In your VCL you could then use this vmod along the following lines::
 HISTORY
 =======
 
-No history yet.
-
+* Region code functionality based on the GeoIPCity/GeoCityLite databases 
+from MaxMind were contributed by developers from www.dnainfo.com.
 
 COPYRIGHT
 =========
